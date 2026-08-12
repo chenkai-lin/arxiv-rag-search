@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.pyc
+.env
+
+# Downloaded/generated data (large, regeneratable via scripts)
+data/pdfs/*.pdf
+data/texts/*.txt
+index/*.npy
+index/*.index
+
+.ipynb_checkpoints/
