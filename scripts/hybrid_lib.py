@@ -106,21 +106,29 @@ class HybridSearchEngine:
     # Recall legs -- each returns {faiss_id: score}, higher score = better
     # ------------------------------------------------------------------
 
-    def _vector_recall(self, query: str, pool: int) -> dict[int, float]:
+    def _vector_recall(self, query: str, pool: int) -> tuple[dict[int, float], dict[int, float]]:
         """Dense retrieval over the Week 4 FAISS index.
 
         IndexFlatL2 returns squared L2 distance (lower = closer), so we map it
         to a similarity with 1/(1+d): monotonic, bounded in (0, 1], and defined
         at d=0. The subsequent min-max normalization makes the exact shape of
         this mapping mostly irrelevant -- what matters is that it is decreasing.
+
+        Returns both the similarities used for fusion and the raw distances,
+        which the API surfaces so that /search keeps the Week 4 response shape
+        without needing a second SearchEngine (and a second copy of the model)
+        loaded alongside this one.
         """
         embedding = self.model.encode([query], convert_to_numpy=True).astype("float32")
         distances, indices = self.index.search(embedding, min(pool, self.index.ntotal))
-        return {
-            int(idx): 1.0 / (1.0 + float(dist))
-            for idx, dist in zip(indices[0], distances[0])
-            if idx >= 0  # FAISS pads with -1 when fewer than `pool` results exist
-        }
+        sims: dict[int, float] = {}
+        dists: dict[int, float] = {}
+        for idx, dist in zip(indices[0], distances[0]):
+            if idx < 0:  # FAISS pads with -1 when fewer than `pool` results exist
+                continue
+            sims[int(idx)] = 1.0 / (1.0 + float(dist))
+            dists[int(idx)] = float(dist)
+        return sims, dists
 
     def _fts5_recall(self, query: str, pool: int) -> dict[int, float]:
         """Sparse retrieval via SQLite FTS5's built-in bm25() ranking."""
@@ -260,10 +268,14 @@ class HybridSearchEngine:
         return {row["faiss_id"]: row for row in rows}
 
     def _format(
-        self, merged: list[tuple[int, float, float, float]], k: int
+        self,
+        merged: list[tuple[int, float, float, float]],
+        k: int,
+        distances: dict[int, float] | None = None,
     ) -> list[dict]:
         top = merged[:k]
         hydrated = self._hydrate([fid for fid, *_ in top])
+        distances = distances or {}
 
         results = []
         for rank, (faiss_id, fused, vec_score, kw_score) in enumerate(top, start=1):
@@ -278,6 +290,9 @@ class HybridSearchEngine:
                 "year": row["year"],
                 "url": row["url"],
                 "text": row["text"],
+                # Raw FAISS L2 distance, or None for a chunk the keyword leg
+                # found on its own and the vector leg never saw.
+                "distance": distances.get(faiss_id),
                 "vec_score": round(vec_score, 6),
                 "kw_score": round(kw_score, 6),
                 "fused_score": round(fused, 6),
@@ -298,16 +313,16 @@ class HybridSearchEngine:
         pool: int = DEFAULT_POOL,
     ) -> list[dict]:
         """Hybrid search: run both legs, fuse, return the top k."""
-        vec = self._vector_recall(query, pool)
+        vec, dists = self._vector_recall(query, pool)
         kw = self._keyword_recall(query, pool, kw_backend)
         merged = self._fuse(vec, kw, method, alpha)
-        return self._format(merged, k)
+        return self._format(merged, k, dists)
 
     def search_vector_only(self, query: str, k: int = 3, pool: int = DEFAULT_POOL) -> list[dict]:
         """Week 4 baseline, re-expressed through the hybrid result schema."""
-        vec = self._vector_recall(query, pool)
+        vec, dists = self._vector_recall(query, pool)
         merged = self._fuse(vec, {}, "weighted", alpha=1.0)
-        return self._format(merged, k)
+        return self._format(merged, k, dists)
 
     def search_keyword_only(
         self, query: str, k: int = 3, kw_backend: str = "fts5", pool: int = DEFAULT_POOL
