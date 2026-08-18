@@ -8,5 +8,6 @@ data/pdfs/*.pdf
 data/texts/*.txt
 index/*.npy
 index/*.index
+index/*.db
 
 .ipynb_checkpoints/

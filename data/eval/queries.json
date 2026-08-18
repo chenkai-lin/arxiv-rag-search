@@ -1,0 +1,138 @@
+{
+  "_readme": [
+    "Evaluation set for Week 5 hybrid retrieval: 15 queries over the 50-paper arXiv cs.CL corpus.",
+    "",
+    "GROUND TRUTH IS LABELLED AT CHUNK LEVEL (`relevant_chunk_ids`). Paper-level relevance is",
+    "derived from it in the evaluation script (a chunk_id is '<paper_id>_<n>'), so the same 15",
+    "queries are scored at both granularities and the two numbers are directly comparable.",
+    "",
+    "Why chunk level. An earlier version of this set labelled whole papers and every method scored",
+    "an identical 83.3% Hit@3 -- the task was saturated. The corpus has 50 papers on 50 essentially",
+    "disjoint topics, so any signal at all identifies the right paper, and because a paper's chunks",
+    "cluster together in both rankings, top-3 almost always contains one. Chunk level asks the",
+    "question RAG actually needs answered: not 'which paper' but 'which passage do I put in the",
+    "prompt'. The paper-level scores are still reported, as evidence for exactly this point.",
+    "",
+    "How the queries were written. For each target paper the full chunk list was read, a specific",
+    "technical detail was picked, and the query was written to ask about that detail. A chunk is",
+    "listed as relevant only if it actually contains the answer -- several queries have more than",
+    "one because the corpus genuinely repeats a fact across chunks. Labels were fixed before any",
+    "retrieval was run against them, and no query was reworded after seeing a method's score.",
+    "",
+    "Interference groups are deliberate: 2608.08082/2608.08086 are both masked-diffusion-LM papers,",
+    "2608.08168/2608.07852 both apply sparse autoencoders. Retrieving the right paper of a pair is",
+    "not enough; the right passage inside it still has to win.",
+    "",
+    "`type` splits the set three ways:",
+    "  semantic - paraphrase, deliberately avoiding the passage's own vocabulary; favours vectors",
+    "  keyword  - literal identifiers and coined names present in the passage; favours BM25",
+    "  mixed    - a named entity plus surrounding concepts; the case fusion should win"
+  ],
+  "queries": [
+    {
+      "qid": "q01",
+      "type": "keyword",
+      "query": "LongCat-Flash Single Batch Overlap ScMoE",
+      "relevant_chunk_ids": ["2608.08650_10"],
+      "note": "Three literal system names that occur in exactly one chunk of the MoE survey."
+    },
+    {
+      "qid": "q02",
+      "type": "mixed",
+      "query": "replicating hotspot experts at runtime to avoid device stragglers",
+      "relevant_chunk_ids": ["2608.08650_13"],
+      "note": "DeepSeek-V3 redundant expert deployment. 'hotspot' and 'stragglers' are literal; the framing is conceptual."
+    },
+    {
+      "qid": "q03",
+      "type": "semantic",
+      "query": "why do some experts stop receiving training signal when only a few are picked per token",
+      "relevant_chunk_ids": ["2608.08650_7"],
+      "note": "Answer is 'Top-k causes unselected experts to have no gradient'. Query avoids 'Top-k', 'gradient', 'capacity'."
+    },
+    {
+      "qid": "q04",
+      "type": "mixed",
+      "query": "All-to-All metadata and small-GEMM fragmentation when experts get too few tokens",
+      "relevant_chunk_ids": ["2608.08650_9"],
+      "note": "Literal technical terms from one chunk of the survey, plus the conceptual condition."
+    },
+    {
+      "qid": "q05",
+      "type": "semantic",
+      "query": "once a position has been filled in it can never be revised, so what repair is left",
+      "relevant_chunk_ids": ["2608.08082_60"],
+      "note": "Answer: reopening is the only repair under absorbing unmasking. Query avoids 'reopening', 'absorbing', 'masked'."
+    },
+    {
+      "qid": "q06",
+      "type": "mixed",
+      "query": "commitment horizon definition tolerance epsilon earliest persistent switch point",
+      "relevant_chunk_ids": ["2608.08082_5"],
+      "note": "Definition 1 of the CFG paper. Interference: 2608.08086 is the other diffusion-LM paper."
+    },
+    {
+      "qid": "q07",
+      "type": "keyword",
+      "query": "Archer refresh when Hamming distance to the anchor exceeds K",
+      "relevant_chunk_ids": ["2608.08086_5"],
+      "note": "The state-aware refresh rule, stated in exactly one chunk."
+    },
+    {
+      "qid": "q08",
+      "type": "semantic",
+      "query": "how much quality and speed does reusing cached states buy on code generation benchmarks",
+      "relevant_chunk_ids": ["2608.08086_2"],
+      "note": "Answer: Pass@1 up to 3.05 points, 1.36-1.78x speedup on MBPP/LiveCodeBench. Query avoids all of those literals."
+    },
+    {
+      "qid": "q09",
+      "type": "keyword",
+      "query": "insertion strategy beginning only end only number of inserted embeddings",
+      "relevant_chunk_ids": ["2608.08024_7"],
+      "note": "The PEP ablation over prompt-embedding insertion positions."
+    },
+    {
+      "qid": "q10",
+      "type": "semantic",
+      "query": "spotting untruthful answers by reading a frozen network's internal activations",
+      "relevant_chunk_ids": ["2608.08024_0", "2608.08024_1"],
+      "note": "Paraphrase of hidden-state hallucination detection; both the abstract chunk and the intro chunk state it. Interference: 2608.07525 and 2608.08180 are also hallucination papers."
+    },
+    {
+      "qid": "q11",
+      "type": "mixed",
+      "query": "k-sparse autoencoders avoid the shrinkage bias of L1 regularization",
+      "relevant_chunk_ids": ["2608.08168_3"],
+      "note": "Interference: 2608.07852 also uses sparse autoencoders, but on personas, and does not discuss shrinkage bias."
+    },
+    {
+      "qid": "q12",
+      "type": "semantic",
+      "query": "which mode leans on worded-out logical connectives and which leans on mathematical symbols",
+      "relevant_chunk_ids": ["2608.08168_7"],
+      "note": "Thinking vs NoThinking token-composition contrast. Query avoids 'Thinking', 'NoThinking', 'reasoning tokens'."
+    },
+    {
+      "qid": "q13",
+      "type": "semantic",
+      "query": "pushing a model out of an assigned character and back to its ordinary helper voice",
+      "relevant_chunk_ids": ["2608.07852_13"],
+      "note": "Negative steering returns the Assistant to default mode. Query avoids 'steering', 'persona', 'Assistant', 'roleplay'."
+    },
+    {
+      "qid": "q14",
+      "type": "semantic",
+      "query": "do models tackle exam questions in the order shown rather than by how many marks they carry",
+      "relevant_chunk_ids": ["2608.07968_2"],
+      "note": "Answer: allocation is governed by presentation order, not point values. Query avoids 'presentation position', 'point values', 'allocation'."
+    },
+    {
+      "qid": "q15",
+      "type": "keyword",
+      "query": "top-density overlap and early-position overlap of the work set",
+      "relevant_chunk_ids": ["2608.07968_10"],
+      "note": "Two coined metric names defined in exactly one chunk."
+    }
+  ]
+}
