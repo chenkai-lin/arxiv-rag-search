@@ -9,5 +9,6 @@ data/texts/*.txt
 index/*.npy
 index/*.index
 index/*.db
+data/sft/paper_contexts.json
 
 .ipynb_checkpoints/

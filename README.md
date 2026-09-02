@@ -22,6 +22,9 @@ data/pdfs/      50 downloaded arXiv cs.CL PDFs (gitignored, regenerate via scrip
 data/texts/     extracted plain text per paper (gitignored) + metadata.json (committed)
 data/chunks/    chunks.jsonl -- 914 chunks, reference sections stripped (committed)
 data/eval/      queries.json -- 15 queries with chunk-level relevance labels (committed)
+data/sft/       week 7 synthetic Q&A: raw_qa.json (generator output), synthetic_qa.jsonl
+                + synthetic_qa_val.jsonl (chat-formatted train/val), dataset_stats.json
+                (all committed); paper_contexts.json is a regeneratable inspection dump
 index/          embeddings.npy, faiss.index, hybrid.db (gitignored, regenerate via
                 scripts/build_index.py and scripts/build_sqlite.py);
                 chunks_meta.json (committed)
@@ -104,6 +107,34 @@ which leg is responsible for a hit.
 `/search` keeps its week 4 response shape exactly. Both endpoints are served by one
 `HybridSearchEngine`, so the model, the FAISS index and the SQLite connection load once
 at process startup (FastAPI `lifespan`), not per request and not once per endpoint.
+
+## Week 7: synthetic Q&A for fine-tuning
+
+Week 7 reuses this corpus for the opposite purpose — distilling its knowledge into a
+model's weights instead of retrieving it. Two scripts, kept separate because generation
+is slow, paid and vendor-specific while formatting is fast, free and deterministic:
+
+- `scripts/generate_synthetic_qa.py` — for each paper in `metadata.json`, builds a context
+  (abstract + a budgeted digest of each detected section; `--dump-contexts` writes them
+  to `data/sft/paper_contexts.json` without any API call) and asks an LLM for 5 Q&A pairs
+  (4 answerable + 1 edge case whose premise is false or whose detail the paper never
+  reports). Output: `data/sft/raw_qa.json`. Resumable — papers already in the output are
+  skipped. **Provider is configuration, not code**: `LLM_PROVIDER` (`openai` |
+  `anthropic`), `LLM_MODEL`, `LLM_API_KEY`, `LLM_BASE_URL` — the `openai` path is the
+  wire protocol, not the company, so `LLM_BASE_URL` points it at DeepSeek, Qwen,
+  OpenRouter, Ollama, vLLM, … See the config block in the script for known-good
+  combinations. Put them in a git-ignored `.env` at the repo root.
+- `scripts/build_sft_dataset.py` — `raw_qa.json` → chat-formatted JSONL. Applies the
+  `<|system|>…<|user|>…<|assistant|>…` template once, dedups on the normalised question,
+  and splits **by paper** (`--val-split`, default 0.1) so no validation question has a
+  sibling in training. Output: `synthetic_qa.jsonl` (450), `synthetic_qa_val.jsonl` (50),
+  `dataset_stats.json`.
+
+The committed `raw_qa.json` for the 100-paper corpus was authored with Claude (Sonnet)
+rather than GPT-4 — an equivalent synthetic-data generator — from the same
+abstract-plus-section-digest context the script builds. Re-run `build_sft_dataset.py` to
+regenerate the JSONL; re-run `generate_synthetic_qa.py` with a provider configured to
+regenerate `raw_qa.json` from scratch.
 
 ## Hybrid retrieval: does it help?
 

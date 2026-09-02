@@ -1,0 +1,40 @@
+{
+  "generator": "claude-sonnet-5 (Claude Code, manual authoring from abstract + section digest)",
+  "system_prompt": "You are a helpful academic Q&A assistant specialized in scholarly content.",
+  "val_split": 0.1,
+  "seed": 42,
+  "dropped": {
+    "short_question": 0,
+    "short_answer": 0,
+    "long_answer": 0,
+    "duplicate": 0
+  },
+  "train": {
+    "examples": 450,
+    "papers": 90,
+    "by_type": {
+      "conceptual": 190,
+      "edge_case": 90,
+      "factual": 170
+    },
+    "text_chars": {
+      "min": 458,
+      "median": 645,
+      "max": 954
+    }
+  },
+  "val": {
+    "examples": 50,
+    "papers": 10,
+    "by_type": {
+      "conceptual": 20,
+      "edge_case": 10,
+      "factual": 20
+    },
+    "text_chars": {
+      "min": 472,
+      "median": 641,
+      "max": 891
+    }
+  }
+}

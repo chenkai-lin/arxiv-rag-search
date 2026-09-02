@@ -20,3 +20,9 @@ nbclient>=0.10.0
 ipykernel>=6.29.5
 pandas>=2.2
 matplotlib>=3.9
+
+# Week 7 synthetic Q&A generation (scripts/generate_synthetic_qa.py). Only the client
+# for the provider you set via LLM_PROVIDER is required at runtime; both are listed so
+# either path installs cleanly. scripts/build_sft_dataset.py needs neither.
+openai>=1.40
+anthropic>=0.40
